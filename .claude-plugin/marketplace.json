@@ -1,0 +1,5 @@
+{
+  "name": "claude-todo-tree",
+  "owner": { "name": "uta-a" },
+  "plugins": [{ "name": "todo-tree", "source": "./" }]
+}
