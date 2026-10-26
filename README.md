@@ -12,6 +12,7 @@ TODO · 1/3
 - TodoWrite / TaskCreate / TaskUpdate の呼び出しを拾って表示する
 - TodoWrite が使えないセッション向けに `set_todos` ツールを追加する
 - resume したセッションでは会話の記録から TODO を復元する
+- `set_todos` の項目に `group` を付けると親の見出しの下にまとめ、作業中の親だけ子を展開する
 - サブエージェントの TODO は表示しない
 - すべて完了すると表示を消す
 

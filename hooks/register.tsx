@@ -19,11 +19,19 @@ const parseList = (raw: unknown): Todo[] | string => {
   }
   const list: Todo[] = []
   for (const [i, t] of raw.entries()) {
-    const { content, status } = (t ?? {}) as { content?: unknown; status?: unknown }
+    const { content, status, group } = (t ?? {}) as {
+      content?: unknown
+      status?: unknown
+      group?: unknown
+    }
     if (typeof content !== 'string' || !STATUSES.includes(status as Todo['status'])) {
       return `todos[${i}] needs a string content and a status of ${STATUSES.join(', ')}`
     }
-    list.push({ id: String(i), text: content, status: status as Todo['status'] })
+    if (group !== undefined && typeof group !== 'string') {
+      return `todos[${i}].group must be a string`
+    }
+    const todo: Todo = { id: String(i), text: content, status: status as Todo['status'] }
+    list.push(group ? { ...todo, group } : todo)
   }
   return list
 }
@@ -39,6 +47,38 @@ const updateTask = (
     : list.map(t =>
         t.id === taskId ? { ...t, text: subject ?? t.text, status: status ?? t.status } : t,
       )
+
+type Node = { kind: 'item'; todo: Todo } | { kind: 'group'; name: string; items: Todo[] }
+
+// group を持つ項目を、最初に現れた位置で 1 つの親にまとめる
+const toTree = (list: Todo[]): Node[] => {
+  const nodes: Node[] = []
+  const groups = new Map<string, Todo[]>()
+  for (const todo of list) {
+    if (todo.group === undefined) {
+      nodes.push({ kind: 'item', todo })
+      continue
+    }
+    const items = groups.get(todo.group)
+    if (items) {
+      items.push(todo)
+    } else {
+      const created = [todo]
+      groups.set(todo.group, created)
+      nodes.push({ kind: 'group', name: todo.group, items: created })
+    }
+  }
+  return nodes
+}
+
+// 子を展開する親。作業中の項目を含む親、なければ最初の未完了の親
+const activeGroup = (nodes: Node[]): string | undefined => {
+  const groups = nodes.flatMap(n => (n.kind === 'group' ? [n] : []))
+  return (
+    groups.find(g => g.items.some(t => t.status === 'in_progress')) ??
+    groups.find(g => g.items.some(t => t.status !== 'completed'))
+  )?.name
+}
 
 // 会話の記録にある TODO ツールの呼び出しを順に再生して、今の TODO を組み立てる
 const replay = async ($: EngineInterface): Promise<Todo[]> => {
@@ -89,7 +129,7 @@ export const register: Register = on => {
     await $.tool.register({
       name: 'set_todos',
       description:
-        'Replace the TODO list shown above the prompt. Pass the whole list every time, with the current status of every item.',
+        'Replace the TODO list shown above the prompt. Pass the whole list every time, with the current status of every item. Give items the same group to show them under one parent heading; only the group being worked on is expanded.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -100,6 +140,7 @@ export const register: Register = on => {
               properties: {
                 content: { type: 'string' },
                 status: { type: 'string', enum: [...STATUSES] },
+                group: { type: 'string' },
               },
               required: ['content', 'status'],
             },
@@ -172,29 +213,77 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
 
+    const label = (t: Todo) =>
+      t.status === 'completed' ? (
+        <Text color="success" dimColor strikethrough>
+          {MARK.completed} {t.text}
+        </Text>
+      ) : t.status === 'in_progress' ? (
+        <Text color="claude" bold>
+          {MARK.in_progress} {t.text}
+        </Text>
+      ) : (
+        <Text>
+          {MARK.pending} {t.text}
+        </Text>
+      )
+
+    const nodes = toTree(list)
+    const active = activeGroup(nodes)
+
     return (
       <Box flexDirection="column">
         <Text bold>
           TODO <Text dimColor>· {done}/{list.length}</Text>
         </Text>
-        {list.map((t, i) => (
-          <Text key={t.id}>
-            <Text dimColor>{i === list.length - 1 ? '└─ ' : '├─ '}</Text>
-            {t.status === 'completed' ? (
-              <Text color="success" dimColor strikethrough>
-                {MARK.completed} {t.text}
+        {nodes.map((n, i) => {
+          const last = i === nodes.length - 1
+          const branch = <Text dimColor>{last ? '└─ ' : '├─ '}</Text>
+          if (n.kind === 'item') {
+            return (
+              <Text key={n.todo.id}>
+                {branch}
+                {label(n.todo)}
               </Text>
-            ) : t.status === 'in_progress' ? (
-              <Text color="claude" bold>
-                {MARK.in_progress} {t.text}
-              </Text>
-            ) : (
+            )
+          }
+          const groupDone = n.items.filter(t => t.status === 'completed').length
+          const count = (
+            <Text dimColor>
+              {' '}
+              · {groupDone}/{n.items.length}
+            </Text>
+          )
+          return (
+            <Box key={`group:${n.name}`} flexDirection="column">
               <Text>
-                {MARK.pending} {t.text}
+                {branch}
+                {groupDone === n.items.length ? (
+                  <Text color="success" dimColor strikethrough>
+                    {n.name}
+                  </Text>
+                ) : n.name === active ? (
+                  <Text color="claude" bold>
+                    {n.name}
+                  </Text>
+                ) : (
+                  <Text>{n.name}</Text>
+                )}
+                {count}
               </Text>
-            )}
-          </Text>
-        ))}
+              {n.name === active &&
+                n.items.map((t, j) => (
+                  <Text key={t.id}>
+                    <Text dimColor>
+                      {last ? '   ' : '│  '}
+                      {j === n.items.length - 1 ? '└─ ' : '├─ '}
+                    </Text>
+                    {label(t)}
+                  </Text>
+                ))}
+            </Box>
+          )
+        })}
       </Box>
     )
   })

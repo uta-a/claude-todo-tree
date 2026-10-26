@@ -1,1 +1,1 @@
-{ "name": "todo-tree", "version": "0.1.0", "description": "TODO をプロンプト上にツリー表示する", "types": "./types/index.d.ts" }
+{ "name": "todo-tree", "version": "0.2.0", "description": "TODO をプロンプト上にツリー表示する", "types": "./types/index.d.ts" }
