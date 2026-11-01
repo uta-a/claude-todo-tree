@@ -11,6 +11,9 @@ const owner = atom({ plugin: 'todo-tree', key: 'sessionId' } as const, null as s
 const MARK = { pending: '☐', in_progress: '▶︎', completed: '☑︎' } as const
 const STATUSES = ['pending', 'in_progress', 'completed'] as const
 const SET_TODOS = 'mcp__todo-tree__set_todos'
+const AUTO_SHOW = `# TODO tree
+
+When you start implementation work of more than one step in the main conversation, call ${SET_TODOS} before your first edit, listing the steps. Use it in preference to any other TODO tool. Group the steps with group when they fall into phases. Call it again whenever a step starts or finishes, so the list stays current. Skip it for questions, research, and single small edits. Subagents do not call it.`
 
 // TodoWrite / set_todos の todos 入力を検証して Todo[] にする。不正なら理由を返す
 const parseList = (raw: unknown): Todo[] | string => {
@@ -158,8 +161,22 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // 実装を始めるときに、モデルが自分から TODO を出すように指示する
+  on('prompt.compose', async ($, e, next) => {
+    const { sections } = await next(e)
+    if (!e.tools.includes(SET_TODOS)) {
+      return { sections }
+    }
+    return { sections: [...sections, { id: 'todo-tree:auto-show', text: AUTO_SHOW, scope: 'session' }] }
+  })
+
   on('tool.call', { tool: /^mcp__todo-tree__set_todos$/ }, async ($, e) => {
-    const list = parseList((e as { todos?: unknown }).todos)
+    const { todos: raw, agentId } = e as { todos?: unknown; agentId?: string }
+    // サブエージェントの TODO は無視し、メインの会話のものだけ表示する
+    if (agentId !== undefined) {
+      return { result: 'TODO list is only for the main conversation; nothing changed' }
+    }
+    const list = parseList(raw)
     if (typeof list === 'string') {
       return { deny: list }
     }
