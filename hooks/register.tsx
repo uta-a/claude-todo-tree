@@ -13,7 +13,7 @@ const STATUSES = ['pending', 'in_progress', 'completed'] as const
 const SET_TODOS = 'mcp__todo-tree__set_todos'
 const AUTO_SHOW = `# TODO tree
 
-When you start implementation work of more than one step in the main conversation, call ${SET_TODOS} before your first edit, listing the steps. Use it in preference to any other TODO tool. Group the steps with group when they fall into phases. Call it again whenever a step starts or finishes, so the list stays current. Skip it for questions, research, and single small edits. Subagents do not call it.`
+When you start implementation work of more than one step in the main conversation, call ${SET_TODOS} before your first edit, listing the steps. Use it in preference to any other TODO tool. Group the steps with group when they fall into phases. Call it again whenever a step starts or finishes, so the list stays current. Mark as in_progress only the step you are working on right now, which is normally exactly one: when you write several steps in one go, still mark them one at a time, and leave the rest pending. Mark several only while they really run at the same time, such as parallel subagents. Skip it for questions, research, and single small edits. Subagents do not call it.`
 
 // TodoWrite / set_todos の todos 入力を検証して Todo[] にする。不正なら理由を返す
 const parseList = (raw: unknown): Todo[] | string => {
@@ -132,7 +132,7 @@ export const register: Register = on => {
     await $.tool.register({
       name: 'set_todos',
       description:
-        'Replace the TODO list shown above the prompt. Pass the whole list every time, with the current status of every item. Give items the same group to show them under one parent heading; only the group being worked on is expanded.',
+        'Replace the TODO list shown above the prompt. Pass the whole list every time, with the current status of every item. Only a step being worked on right now is in_progress, normally exactly one. Give items the same group to show them under one parent heading; only the group being worked on is expanded.',
       inputSchema: {
         type: 'object',
         properties: {
