@@ -32,3 +32,12 @@ TODO · 1/3
 ```
 claude plugin install todo-tree --marketplace uta-a/claude-todo-tree
 ```
+
+## 開発
+
+テストは Claude Code のプラグイン用ランナーで実行する。`tests/*.test.ts` は `claude-code/testing` を import しており、このモジュールはランナーが用意するので、`bun test` などでは解決できずに失敗する。
+
+```
+claude plugin test .
+claude plugin validate .
+```
