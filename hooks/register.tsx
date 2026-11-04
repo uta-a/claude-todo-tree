@@ -249,7 +249,7 @@ export const register: Register = on => {
     const active = activeGroup(nodes)
 
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" marginTop={1}>
         <Text bold>
           TODO <Text dimColor>· {done}/{list.length}</Text>
         </Text>
