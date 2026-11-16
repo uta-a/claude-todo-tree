@@ -224,7 +224,8 @@ export const register: Register = on => {
     }
     const done = list.filter(t => t.status === 'completed').length
 
-    if (e.props.hasSurvey || list.length === 0 || done === list.length) {
+    // すべて完了しても、次に新しい TODO が来るまで表示を残す
+    if (e.props.hasSurvey || list.length === 0) {
       return next(e)
     }
 
