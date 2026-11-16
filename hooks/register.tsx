@@ -250,8 +250,9 @@ export const register: Register = on => {
     const active = activeGroup(nodes)
 
     return (
+      // アプリはプロポーショナルフォントで描くので、罫線がそろうよう行を等幅にする。ターミナルは mono を無視する
       <Box flexDirection="column" marginTop={1}>
-        <Text bold>
+        <Text bold mono>
           TODO <Text dimColor>· {done}/{list.length}</Text>
         </Text>
         {nodes.map((n, i) => {
@@ -259,7 +260,7 @@ export const register: Register = on => {
           const branch = <Text dimColor>{last ? '└─ ' : '├─ '}</Text>
           if (n.kind === 'item') {
             return (
-              <Text key={n.todo.id}>
+              <Text key={n.todo.id} mono>
                 {branch}
                 {label(n.todo)}
               </Text>
@@ -274,7 +275,7 @@ export const register: Register = on => {
           )
           return (
             <Box key={`group:${n.name}`} flexDirection="column">
-              <Text>
+              <Text mono>
                 {branch}
                 {groupDone === n.items.length ? (
                   <Text color="success" dimColor strikethrough>
@@ -291,7 +292,7 @@ export const register: Register = on => {
               </Text>
               {n.name === active &&
                 n.items.map((t, j) => (
-                  <Text key={t.id}>
+                  <Text key={t.id} mono>
                     <Text dimColor>
                       {last ? '   ' : '│  '}
                       {j === n.items.length - 1 ? '└─ ' : '├─ '}
