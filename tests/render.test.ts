@@ -64,9 +64,9 @@ test('ターミナルではツリーの各行の文字列が変わらない', as
   await ui.unmount()
 })
 
-test('アプリでは罫線がそろうよう、すべての行を等幅で描く', async ($, on) => {
+test('VS Code では罫線がそろうよう、すべての行を等幅で描く', async ($, on) => {
   await seed($, on)
-  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const ui = await $.ui.mount({ ...BAND, surface: 'vscode' })
   const rows = rowsOf((await ui.drawn()) as El)
   expect(rows.map(textOf)).toEqual(LINES)
   expect(rows.map(r => r.props?.mono)).toEqual(LINES.map(() => true))
@@ -86,7 +86,7 @@ const textsWith = (c: unknown, match: (s: string) => boolean): El[] =>
 
 test('完了した項目とグループ名は色を付けず、灰色（dim）と取り消し線で描く', async ($, on) => {
   await seed($, on)
-  for (const surface of ['terminal', 'desktop'] as const) {
+  for (const surface of ['terminal', 'vscode'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     const done = textsWith(await ui.drawn(), s => s === '調査' || s.startsWith('☑︎'))
     expect(done).toHaveLength(2)
@@ -95,6 +95,15 @@ test('完了した項目とグループ名は色を付けず、灰色（dim）�
       expect(t.props?.dimColor).toBe(true)
       expect(t.props?.strikethrough).toBe(true)
     }
+    await ui.unmount()
+  }
+})
+
+test('Claude のアプリ（desktop / mobile）では TODO tree を描かない', async ($, on) => {
+  await seed($, on)
+  for (const surface of ['desktop', 'mobile'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+    expect(textOf(await ui.drawn())).not.toContain('TODO')
     await ui.unmount()
   }
 })

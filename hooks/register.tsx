@@ -216,6 +216,10 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // Claude のアプリ（デスクトップ・スマホ）では表示しない
+    if (e.surface === 'desktop' || e.surface === 'mobile') {
+      return next(e)
+    }
     const sessionId = await $.session.id()
     let list = await read($, todos)
     if ((await read($, owner)) !== sessionId) {
