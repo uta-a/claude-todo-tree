@@ -233,7 +233,7 @@ export const register: Register = on => {
 
     const label = (t: Todo) =>
       t.status === 'completed' ? (
-        <Text color="success" dimColor strikethrough>
+        <Text dimColor strikethrough>
           {MARK.completed} {t.text}
         </Text>
       ) : t.status === 'in_progress' ? (
@@ -278,7 +278,7 @@ export const register: Register = on => {
               <Text mono>
                 {branch}
                 {groupDone === n.items.length ? (
-                  <Text color="success" dimColor strikethrough>
+                  <Text dimColor strikethrough>
                     {n.name}
                   </Text>
                 ) : n.name === active ? (

@@ -72,3 +72,29 @@ test('アプリでは罫線がそろうよう、すべての行を等幅で描�
   expect(rows.map(r => r.props?.mono)).toEqual(LINES.map(() => true))
   await ui.unmount()
 })
+
+// 文字列を子に持つ Text のうち、文字列が条件に合うものを集める
+const textsWith = (c: unknown, match: (s: string) => boolean): El[] =>
+  !isEl(c)
+    ? []
+    : [
+        ...(c.type === 'Text' && (c.children ?? []).some(s => typeof s === 'string' && match(s))
+          ? [c]
+          : []),
+        ...(c.children ?? []).flatMap(x => textsWith(x, match)),
+      ]
+
+test('完了した項目とグループ名は色を付けず、灰色（dim）と取り消し線で描く', async ($, on) => {
+  await seed($, on)
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({ ...BAND, surface })
+    const done = textsWith(await ui.drawn(), s => s === '調査' || s.startsWith('☑︎'))
+    expect(done).toHaveLength(2)
+    for (const t of done) {
+      expect(t.props?.color).toBeUndefined()
+      expect(t.props?.dimColor).toBe(true)
+      expect(t.props?.strikethrough).toBe(true)
+    }
+    await ui.unmount()
+  }
+})
